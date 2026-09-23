@@ -1,3 +1,5 @@
+# Get info from the following sources for this: https://byuidatascience.github.io/agentic_ai_course/lessons/lesson1_4.html , ./ai-conversations/'How do I add a system prompt with this_.docx', and ./ai-conversations/'The last hint in this page_guide has me create a....docx'
+
 from rich.console import Console
 from rich.markdown import Markdown
 console = Console()
