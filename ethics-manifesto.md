@@ -1,0 +1,1 @@
+Basis: AI cannot replace the user, their learning, or their social network and their ability to connect with others.
