@@ -48,25 +48,66 @@
 # *** CODE FOR USING GOOGLE'S TOOLS INSTEAD OF LANGCHAIN'S ***
 
 
-
+import os
+import uuid
+import warnings
 from dotenv import load_dotenv
-load_dotenv()
+
+warnings.filterwarnings("ignore")
+os.environ["PYTHONWARNINGS"] = "ignore"
+
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langgraph.checkpoint.memory import MemorySaver
+from langchain_core.tools import tool
+
+
+from rich.markdown import Markdown
+from rich.console import Console
+console = Console()
 from langchain.agents import create_agent
 
 
-SYSTEM_PROMPT = "You are a passive aggressive assistant."
+load_dotenv()
 
 
+
+# Define the tools available to the agent
+tools = []
+
+# Initialize LangChain LLM
+llm = ChatGoogleGenerativeAI(
+    model="gemini-flash-lite-latest",
+    temperature=0
+)
+
+# Initialize memory checkpointer
+memory = MemorySaver()
+
+# System prompt
+SYSTEM_PROMPT = """
+
+    You are a humble and concise assistant.
+
+"""
+
+# Create agent
 agent = create_agent(
-    model="google_genai:gemini-flash-lite-latest",
-    tools=[],
+    model=llm,
+    tools=tools,
+    checkpointer=memory,
     system_prompt=SYSTEM_PROMPT
 )
 
 
+thread_config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+
+
+
+
 def get_response(prompt: str) -> str:
-    response = agent.invoke({"messages": [prompt]})
-    print(response["messages"][-1].text)
+    input = {"messages": [prompt]}
+    response = agent.invoke(input, config=thread_config)
+    return response["messages"][-1].text
 
 def main():
     while True:
@@ -76,8 +117,7 @@ def main():
             response = get_response(prompt)
         except EOFError:
             break
-        # console.print(Markdown(response))
-        print(response)
+        console.print(Markdown(response))
 
 if __name__ == "__main__":
     main()
