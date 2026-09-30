@@ -48,18 +48,21 @@
 # *** CODE FOR USING GOOGLE'S TOOLS INSTEAD OF LANGCHAIN'S ***
 
 
+import asyncio
 import os
 import uuid
 import warnings
 from dotenv import load_dotenv
 
-warnings.filterwarnings("ignore")
-os.environ["PYTHONWARNINGS"] = "ignore"
+# warnings.filterwarnings("ignore")
+# os.environ["PYTHONWARNINGS"] = "ignore"
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.tools import tool
 
+# LangChain MCP import
+from langchain.mcp import MCPAdapter
 
 from rich.markdown import Markdown
 from rich.console import Console
@@ -71,8 +74,10 @@ load_dotenv()
 
 
 
-# Define the tools available to the agent
-tools = []
+
+
+# # Define the tools available to the agent
+# tools = []
 
 # Initialize LangChain LLM
 llm = ChatGoogleGenerativeAI(
@@ -90,34 +95,33 @@ SYSTEM_PROMPT = """
 
 """
 
-# Create agent
-agent = create_agent(
-    model=llm,
-    tools=tools,
-    checkpointer=memory,
-    system_prompt=SYSTEM_PROMPT
-)
-
 
 thread_config = {"configurable": {"thread_id": str(uuid.uuid4())}}
 
 
+# Create agent within MCP adapter
+async def run_agent(prompt: str) -> str:
+    async with MCPAdapter("https://docs.langchain.com/mcp") as adapter:
+        tools = await adapter.list_tools()
+        agent = create_agent(
+            model=llm,
+            tools=tools,
+            checkpointer=memory,
+            system_prompt=SYSTEM_PROMPT
+        )
+        input = {"messages": [prompt]}
+        response = agent.ainvoke(input, config=thread_config)
+        return response["messages"][-1].text
 
-
-def get_response(prompt: str) -> str:
-    input = {"messages": [prompt]}
-    response = agent.invoke(input, config=thread_config)
-    return response["messages"][-1].text
-
-def main():
+async def main():
     while True:
         try:
             prompt = input("Input: ")
             if prompt == "exit": break
-            response = get_response(prompt)
+            response = await run_agent(prompt)
         except EOFError:
             break
         console.print(Markdown(response))
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
